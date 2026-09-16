@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Виртуальная лаборатория — Математический маятник</title>
+<style>
+:root{
+  --bg:#07111f; --panel:rgba(10,24,41,.82); --panel2:rgba(15,35,58,.72);
+  --line:rgba(150,190,220,.2); --text:#eef7ff; --muted:#9fb3c8;
+  --accent:#55d6ff; --accent2:#7c6cff; --good:#5ee7a2; --danger:#ff6d8d;
+  --shadow:0 20px 60px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 75% 10%,#17345b 0,#07111f 42%,#030811 100%);color:var(--text);font:15px/1.35 Inter,Segoe UI,Arial,sans-serif;overflow-x:hidden}
+button,input{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh;display:grid;grid-template-rows:auto 1fr}
+.topbar{height:72px;display:flex;align-items:center;gap:20px;padding:0 24px;border-bottom:1px solid var(--line);background:rgba(3,10,19,.72);backdrop-filter:blur(18px);position:sticky;top:0;z-index:20}
+.logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#00101c;font-weight:900;box-shadow:0 0 28px #55d6ff55}
+.title{min-width:0;flex:1}.title b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.title span{color:var(--muted);font-size:12px}
+.top-actions{display:flex;gap:8px}.iconbtn,.btn{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);border-radius:11px;padding:9px 12px}.iconbtn:hover,.btn:hover{background:rgba(255,255,255,.11)}
+.layout{display:grid;grid-template-columns:300px minmax(420px,1fr) 330px;gap:16px;padding:16px;max-width:1700px;width:100%;margin:auto}
+.left,.right{display:flex;flex-direction:column;gap:14px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(14px)}
+.panel h3{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:#cfe5f6;margin:0;padding:15px 16px;border-bottom:1px solid var(--line)}
+.panel-body{padding:15px}
+.control{margin-bottom:15px}.control:last-child{margin-bottom:0}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.label{color:#dbe9f5;font-size:13px}.value{color:var(--accent);font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--accent);margin-top:9px}
+select{width:100%;background:#0a1b2d;color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px}
+.planet-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.planet{border:1px solid var(--line);background:rgba(255,255,255,.035);color:var(--text);padding:9px 8px;border-radius:10px;text-align:left;font-size:12px}.planet.active{border-color:var(--accent);background:#55d6ff14;box-shadow:inset 0 0 0 1px #55d6ff22}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle}
+.workspace{min-width:0;display:flex;flex-direction:column;gap:14px}
+.scene{position:relative;height:560px;border-radius:22px;overflow:hidden;border:1px solid var(--line);box-shadow:var(--shadow);background:#081827}
+#sceneCanvas{width:100%;height:100%;display:block}.mobileScene{display:none;position:absolute;inset:0;width:100%;height:100%;pointer-events:none}.mobileScene svg{width:100%;height:100%;display:block}@media(max-width:800px){#sceneCanvas{display:none}.mobileScene{display:block}}
+.scene-ui{position:absolute;left:16px;top:16px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{padding:8px 11px;border:1px solid var(--line);background:rgba(4,14,26,.72);backdrop-filter:blur(12px);border-radius:999px;font-size:12px}
+.scene-bottom{position:absolute;bottom:14px;left:14px;right:14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.modes{display:flex;gap:6px}.mode{padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:#071321cc;color:var(--muted)}.mode.active{color:var(--text);border-color:#55d6ff66}
+.primary{border:0;border-radius:12px;padding:11px 17px;color:#00101a;background:linear-gradient(135deg,var(--accent),#a7efff);font-weight:800;box-shadow:0 8px 30px #55d6ff22}.primary:active{transform:translateY(1px)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.stat{padding:13px 14px;border-radius:15px;border:1px solid var(--line);background:var(--panel)}.stat small{display:block;color:var(--muted);font-size:11px}.stat strong{font-size:20px;font-variant-numeric:tabular-nums}
+.energy{height:150px;padding:15px}.energy-head{display:flex;justify-content:space-between;color:var(--muted);font-size:12px;margin-bottom:10px}.bars{height:90px;display:flex;align-items:end;gap:7px}.bar{flex:1;border-radius:6px 6px 2px 2px;background:linear-gradient(#55d6ff,#7c6cff);min-height:4px;opacity:.9;transition:height .15s}
+.readout{display:grid;grid-template-columns:1fr 1fr;gap:8px}.read{background:rgba(255,255,255,.035);border:1px solid var(--line);border-radius:11px;padding:10px}.read span{display:block;color:var(--muted);font-size:11px}.read b{font-size:17px}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.btn.full{width:100%}.btn.good{border-color:#5ee7a255;color:#a5ffd2}.btn.warn{border-color:#ffbd6655;color:#ffd79d}
+.tablewrap{max-height:240px;overflow:auto}.table{width:100%;border-collapse:collapse;font-size:12px}.table th,.table td{padding:8px 7px;border-bottom:1px solid var(--line);text-align:right}.table th:first-child,.table td:first-child{text-align:left}.empty{color:var(--muted);text-align:center;padding:20px}
+.formula{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#020a13;border:1px solid var(--line);border-radius:10px;padding:12px;text-align:center;color:#bceeff}
+.notes{color:var(--muted);font-size:12px}.notes li{margin:7px 0}
+footer{padding:0 16px 18px;text-align:center;color:#71869a;font-size:11px}
+@media(max-width:1150px){.layout{grid-template-columns:270px minmax(420px,1fr)}.right{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr 1fr}.right .panel:last-child{grid-column:1/-1}}
+@media(max-width:800px){.layout{grid-template-columns:1fr;padding:10px}.left,.right{display:contents}.scene{height:430px}.stats{grid-template-columns:1fr 1fr}.topbar{padding:0 12px}.top-actions .iconbtn{display:none}.right .panel{grid-column:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="logo">∿</div>
+  <div class="title"><b>Определение ускорения свободного падения</b><span>Виртуальная лаборатория · математический маятник</span></div>
+  <div class="top-actions"><button class="iconbtn" id="themeBtn">☼ Атмосфера</button><button class="iconbtn" id="resetBtn">↺ Сброс</button></div>
+</header>
+
+<main class="layout">
+<aside class="left">
+  <section class="panel">
+    <h3>Параметры маятника</h3>
+    <div class="panel-body">
+      <div class="control"><div class="row"><span class="label">Длина нити L</span><span class="value" id="lVal">1.50 м</span></div><input id="length" type="range" min=".50" max="2.50" step=".01" value="1.50"></div>
+      <div class="control"><div class="row"><span class="label">Начальный угол α₀</span><span class="value" id="aVal">5°</span></div><input id="angle" type="range" min="1" max="15" step="1" value="5"></div>
+      <div class="control"><div class="row"><span class="label">Масса груза</span><span class="value" id="mVal">0.20 кг</span></div><input id="mass" type="range" min=".05" max="1" step=".01" value=".20"></div>
+      <div class="control"><div class="row"><span class="label">Сопротивление воздуха</span><span class="value" id="airVal">0%</span></div><input id="air" type="range" min="0" max="8" step=".5" value="0"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>Небесное тело</h3>
+    <div class="panel-body">
+      <div class="planet-list" id="planets"></div>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>Управление опытом</h3>
+    <div class="panel-body actions">
+      <button class="primary" id="startBtn">▶ Пуск</button>
+      <button class="btn" id="pauseBtn">Ⅱ Пауза</button>
+      <button class="btn warn" id="stepBtn">→ Шаг</button>
+      <button class="btn" id="zeroBtn">↺ Позиция 0</button>
+    </div>
+  </section>
+</aside>
+
+<section class="workspace">
+  <div class="scene">
+    <canvas id="sceneCanvas"></canvas>
+    <div class="mobileScene" aria-hidden="true">
+      <svg id="pendulumSvg" viewBox="0 0 600 520" preserveAspectRatio="none">
+        <defs>
+          <linearGradient id="svgBg" x1="0" y1="0" x2="0" y2="1"><stop id="svgBg1" offset="0"/><stop id="svgBg2" offset="1"/></linearGradient>
+          <radialGradient id="bobGlow"><stop offset="0" stop-color="#fff" stop-opacity=".95"/><stop id="bobColor" offset=".28"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect width="600" height="520" fill="url(#svgBg)"/>
+        <g opacity=".25" fill="#fff">
+          <circle cx="60" cy="100" r="1.5"/><circle cx="140" cy="160" r="1"/><circle cx="220" cy="75" r="1.4"/><circle cx="330" cy="125" r="1"/><circle cx="470" cy="85" r="1.5"/><circle cx="540" cy="180" r="1"/><circle cx="90" cy="290" r="1"/><circle cx="500" cy="330" r="1.4"/><circle cx="410" cy="250" r="1"/>
+        </g>
+        <g id="svgStand">
+          <rect x="165" y="58" width="270" height="22" rx="9" fill="#26394b"/>
+          <rect x="289" y="78" width="22" height="350" rx="10" fill="#395267"/>
+          <rect x="135" y="426" width="330" height="28" rx="14" fill="#172635"/>
+          <circle cx="300" cy="48" r="9" fill="#91a9ba"/>
+        </g>
+        <path id="svgArc" d="" fill="none" stroke="#fff" stroke-opacity=".12" stroke-width="2"/>
+        <line id="svgThreadShadow" x1="300" y1="66" x2="300" y2="280" stroke="#000" stroke-opacity=".35" stroke-width="7"/>
+        <line id="svgThread" x1="300" y1="66" x2="300" y2="280" stroke="#e5f7ff" stroke-width="3"/>
+        <circle id="svgGlow" cx="300" cy="280" r="40" fill="url(#bobGlow)"/>
+        <circle id="svgBob" cx="300" cy="280" r="18" fill="#55d6ff"/>
+        <circle id="svgHighlight" cx="294" cy="274" r="5" fill="#fff" fill-opacity=".55"/>
+        <path id="svgAngle" d="" fill="none" stroke="#55d6ff" stroke-opacity=".55" stroke-width="3"/>
+        <text x="352" y="75" fill="#bdeeff" font-size="18">α</text>
+      </svg>
+    </div>
+    <div class="scene-ui"><div class="badge">🌐 <span id="planetName">Земля</span></div><div class="badge">g = <span id="gVal">9.81</span> м/с²</div><div class="badge">L = <span id="sceneL">1.50</span> м</div></div>
+    <div class="scene-bottom"><div class="modes"><button class="mode active" data-mode="normal">Схема</button><button class="mode" data-mode="lab">Лаборатория</button></div><button class="primary" id="swingBtn">↗ Возбудить маятник</button></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><small>Период T</small><strong id="period">2.46 с</strong></div>
+    <div class="stat"><small>Измерено N</small><strong id="nCount">0</strong></div>
+    <div class="stat"><small>Время опыта</small><strong id="time">0.00 с</strong></div>
+    <div class="stat"><small>Расчётное g</small><strong id="gCalc">—</strong></div>
+  </div>
+  <section class="panel energy"><div class="energy-head"><span>Энергия системы</span><span>Ep / Ek</span></div><div class="bars" id="bars"></div></section>
+</section>
+
+<aside class="right">
+  <section class="panel">
+    <h3>Измерения</h3>
+    <div class="panel-body">
+      <div class="readout">
+        <div class="read"><span>Полное время</span><b id="elapsed">0.00 с</b></div>
+        <div class="read"><span>Колебаний</span><b id="osc">0</b></div>
+        <div class="read"><span>Средний T</span><b id="avgT">—</b></div>
+        <div class="read"><span>g по опыту</span><b id="gExp">—</b></div>
+      </div>
+      <div style="height:10px"></div>
+      <button class="btn good full" id="recordBtn">＋ Записать измерение</button>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>Таблица результатов</h3>
+    <div class="panel-body tablewrap">
+      <table class="table"><thead><tr><th>№</th><th>L, м</th><th>N</th><th>t, с</th><th>T, с</th><th>g, м/с²</th></tr></thead><tbody id="tbody"><tr><td colspan="6" class="empty">Проведи опыт и нажми «Записать»</td></tr></tbody></table>
+    </div>
+  </section>
+  <section class="panel">
+    <h3>Формула</h3>
+    <div class="panel-body">
+      <div class="formula">T = 2π√(L/g)<br><br>g = 4π²L / T²</div>
+      <ul class="notes"><li>Измеряй несколько полных колебаний, используя один и тот же проход через положение равновесия.</li><li>Для точного расчёта по школьной формуле используй малый угол (рекомендуется 5°–10°).</li><li>Для определения g выставь сопротивление воздуха 0%.</li></ul>
+    </div>
+  </section>
+</aside>
+</main>
+<footer>Интерактивная учебная модель · Все вычисления выполняются прямо в браузере</footer>
+</div>
+
+<script>
+const planets = [
+ {n:"Меркурий",g:3.70,c:"#9b9b9b",bg:["#231f28","#090d18"]},{n:"Венера",g:8.87,c:"#d89d5d",bg:["#49301e","#17100c"]},
+ {n:"Земля",g:9.81,c:"#4db6e8",bg:["#153e58","#06111c"]},{n:"Луна",g:1.62,c:"#b8bec9",bg:["#30343b","#090b0e"]},
+ {n:"Марс",g:3.71,c:"#d36b52",bg:["#4a1f19","#120a09"]},{n:"Юпитер",g:24.79,c:"#d8b07a",bg:["#4d3826","#130e0a"]},
+ {n:"Сатурн",g:10.44,c:"#e1c58c",bg:["#443823","#100d08"]},{n:"Нептун",g:11.15,c:"#668cff",bg:["#172d66","#060a19"]}
+];
+const $=id=>document.getElementById(id);
+let state={planet:planets[2],L:1.5,angle:5,mass:.2,air:0,running:false,t:0,theta:5*Math.PI/180,omega:0,osc:0,lastCross:0,crossTimes:[],rows:[],mode:"normal"};
+const canvas=$("sceneCanvas"),ctx=canvas.getContext("2d"); let W,H,dpr=1,last=performance.now();
+
+function initPlanets(){
+ $("planets").innerHTML=planets.map((p,i)=>`<button class="planet ${i===2?'active':''}" data-i="${i}"><span class="dot" style="background:${p.c}"></span>${p.n}<br><small style="color:#8195a9">g = ${p.g.toFixed(2)}</small></button>`).join("");
+ document.querySelectorAll(".planet").forEach(b=>b.onclick=()=>{state.planet=planets[+b.dataset.i];state.running=false;state.t=0;state.theta=state.angle*Math.PI/180;state.omega=0;state.osc=0;state.crossTimes=[];document.querySelectorAll(".planet").forEach(x=>x.classList.remove("active"));b.classList.add("active");updateUI();});
+}
+function resize(){
+  dpr=Math.max(1, Math.min(3, window.devicePixelRatio||1));
+  const rect=canvas.getBoundingClientRect();
+  W=Math.max(1, Math.floor(rect.width)); H=Math.max(1, Math.floor(rect.height));
+  canvas.width=Math.floor(W*dpr); canvas.height=Math.floor(H*dpr);
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+}
+addEventListener("resize",resize,{passive:true});
+if(window.ResizeObserver){ new ResizeObserver(resize).observe(canvas.parentElement); }
+window.addEventListener("orientationchange",()=>setTimeout(resize,120),{passive:true});
+resize(); initPlanets();
+
+function getMeasuredPeriod(){
+ if(state.crossTimes.length<2) return null;
+ let arr=[];
+ for(let i=1;i<state.crossTimes.length;i++) arr.push(state.crossTimes[i]-state.crossTimes[i-1]);
+ return arr.reduce((a,b)=>a+b,0)/arr.length;
+}
+function updateUI(){
+ $("lVal").textContent=state.L.toFixed(2)+" м"; $("aVal").textContent=state.angle+"°"; $("mVal").textContent=state.mass.toFixed(2)+" кг"; $("airVal").textContent=state.air+"%";
+ $("gVal").textContent=state.planet.g.toFixed(2); $("planetName").textContent=state.planet.n; $("sceneL").textContent=state.L.toFixed(2);
+ const T=2*Math.PI*Math.sqrt(state.L/state.planet.g); $("period").textContent=T.toFixed(2)+" с";
+ $("time").textContent=state.t.toFixed(2)+" с"; $("elapsed").textContent=state.t.toFixed(2)+" с"; $("osc").textContent=state.osc;
+ $("nCount").textContent=Math.max(0,state.crossTimes.length-1);
+ const measuredT=getMeasuredPeriod();
+ if(measuredT!==null){
+   const g=4*Math.PI*Math.PI*state.L/(measuredT*measuredT);
+   $("avgT").textContent=measuredT.toFixed(3)+" с";
+   $("gExp").textContent=g.toFixed(2)+" м/с²";
+   $("gCalc").textContent=g.toFixed(2);
+ } else {
+   $("avgT").textContent="—"; $("gExp").textContent="—"; $("gCalc").textContent="—";
+ }
+}
+["length","angle","mass","air"].forEach(id=>$(id).oninput=()=>{
+ state.L=+$('length').value; state.angle=+$('angle').value; state.mass=+$('mass').value; state.air=+$('air').value;
+ state.running=false; state.t=0; state.theta=state.angle*Math.PI/180; state.omega=0; state.osc=0; state.crossTimes=[];
+ updateUI(); draw(); updateMobileSvg();
+});
+
+$("startBtn").onclick=()=>{state.running=true};
+$("pauseBtn").onclick=()=>{state.running=false};
+$("zeroBtn").onclick=()=>{state.running=false;state.t=0;state.theta=0;state.omega=0;state.osc=0;state.crossTimes=[];updateUI()};
+$("swingBtn").onclick=()=>{state.running=true;state.theta=state.angle*Math.PI/180;state.omega=0};
+$("stepBtn").onclick=()=>{state.running=false;simulate(.05);draw()};
+$("resetBtn").onclick=()=>{state.running=false;state.t=0;state.theta=state.angle*Math.PI/180;state.omega=0;state.osc=0;state.crossTimes=[];state.rows=[];renderTable();updateUI()};
+$("recordBtn").onclick=()=>{let T=getMeasuredPeriod();if(T===null){alert("Сначала проведите хотя бы одно полное измеренное колебание: дождитесь двух одинаковых проходов через положение равновесия.");return}let g=4*Math.PI*Math.PI*state.L/(T*T);let N=state.crossTimes.length-1;state.rows.push({L:state.L,N,t:state.t,T,g});renderTable();updateUI()};
+document.querySelectorAll(".mode").forEach(b=>b.onclick=()=>{state.mode=b.dataset.mode;document.querySelectorAll(".mode").forEach(x=>x.classList.remove("active"));b.classList.add("active")});
+
+function renderTable(){let tb=$("tbody");if(!state.rows.length){tb.innerHTML='<tr><td colspan="6" class="empty">Проведи опыт и нажми «Записать»</td></tr>';return}tb.innerHTML=state.rows.map((r,i)=>`<tr><td>${i+1}</td><td>${r.L.toFixed(2)}</td><td>${r.N}</td><td>${r.t.toFixed(2)}</td><td>${r.T.toFixed(3)}</td><td>${r.g.toFixed(2)}</td></tr>`).join("")}
+
+function acceleration(theta,omega){
+ const g=state.planet.g, damp=state.air*0.012;
+ // School-lab approximation for a mathematical pendulum: sin(theta) ≈ theta.
+ // This makes the simulated period exactly correspond to T = 2π√(L/g).
+ return -(g/state.L)*theta-damp*omega;
+}
+function simulate(dt){
+ // RK4 integration is much more accurate than the previous Euler step,
+ // especially when g or the pendulum length is changed.
+ const theta0=state.theta, omega0=state.omega;
+ const k1t=omega0, k1w=acceleration(theta0,omega0);
+ const k2t=omega0+0.5*dt*k1w, k2w=acceleration(theta0+0.5*dt*k1t,omega0+0.5*dt*k1w);
+ const k3t=omega0+0.5*dt*k2w, k3w=acceleration(theta0+0.5*dt*k2t,omega0+0.5*dt*k2w);
+ const k4t=omega0+dt*k3w, k4w=acceleration(theta0+dt*k3t,omega0+dt*k3w);
+ const theta1=theta0+dt*(k1t+2*k2t+2*k3t+k4t)/6;
+ const omega1=omega0+dt*(k1w+2*k2w+2*k3w+k4w)/6;
+ state.theta=theta1; state.omega=omega1; state.t+=dt;
+ // We detect the same-direction zero crossing every full period.
+ // Linear interpolation inside the time step makes the measured T much more precise.
+ if(theta0>0 && theta1<=0 && omega1<0){
+   const frac=theta0/(theta0-theta1);
+   const crossingTime=(state.t-dt)+frac*dt;
+   state.osc++;
+   state.crossTimes.push(crossingTime);
+   if(state.crossTimes.length>12)state.crossTimes.shift();
+ }
+ updateUI();
+}
+function stars(){
+ for(let i=0;i<90;i++){let x=(i*83.17)%W,y=(i*47.31)%H,r=(i%3)*.45+.35;ctx.globalAlpha=.25+(i%5)/10;ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;
+}
+function draw(){
+ const p=state.planet; let grad=ctx.createLinearGradient(0,0,0,H);grad.addColorStop(0,p.bg[0]);grad.addColorStop(1,p.bg[1]);ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+ stars();
+ // atmospheric glow
+ const glow=ctx.createRadialGradient(W*.7,H*.35,20,W*.7,H*.35,260);glow.addColorStop(0,p.c+"55");glow.addColorStop(1,"transparent");ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+ const pivotX=W*.52,pivotY=86, scale=Math.min(155,H*.33); const len=scale*(state.L/1.5);
+ // stand
+ ctx.fillStyle="#202f40";roundRect(ctx,pivotX-135,pivotY-28,270,20,8);ctx.fillStyle="#31485c";roundRect(ctx,pivotX-18,pivotY-10,36,H*.68,10);ctx.fillStyle="#172432";roundRect(ctx,pivotX-115,H*.68+10,230,24,12);
+ // top details
+ ctx.fillStyle="#6c879d";ctx.beginPath();ctx.arc(pivotX,pivotY-18,8,0,Math.PI*2);ctx.fill();
+ const x=pivotX+Math.sin(state.theta)*len,y=pivotY+Math.cos(state.theta)*len;
+ // guide arc
+ ctx.strokeStyle="#ffffff22";ctx.lineWidth=1;ctx.beginPath();ctx.arc(pivotX,pivotY,len,-Math.PI/2,Math.PI/2);ctx.stroke();
+ // thread shadow
+ ctx.strokeStyle="#00000066";ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(pivotX+3,pivotY+3);ctx.lineTo(x+3,y+4);ctx.stroke();
+ ctx.strokeStyle="#d8edf7";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(pivotX,pivotY);ctx.lineTo(x,y);ctx.stroke();
+ // bob glow
+ const bg=ctx.createRadialGradient(x-7,y-7,3,x,y,31);bg.addColorStop(0,"#fff");bg.addColorStop(.25,p.c);bg.addColorStop(1,p.c+"00");ctx.fillStyle=bg;ctx.beginPath();ctx.arc(x,y,31,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle=p.c;ctx.beginPath();ctx.arc(x,y,15+state.mass*8,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#fff8";ctx.beginPath();ctx.arc(x-5,y-6,4,0,Math.PI*2);ctx.fill();
+ // angle marker
+ ctx.strokeStyle="#55d6ff88";ctx.lineWidth=2;ctx.beginPath();ctx.arc(pivotX,pivotY,48,-Math.PI/2,Math.PI/2);ctx.stroke();
+ ctx.fillStyle="#bdeeff";ctx.font="12px Segoe UI";ctx.fillText("α",pivotX+52,pivotY+6);
+ // ruler
+ if(state.mode==="lab"){ctx.strokeStyle="#ffffff55";ctx.lineWidth=1;for(let i=0;i<=10;i++){let yy=pivotY+i*len/10;ctx.beginPath();ctx.moveTo(pivotX-175,yy);ctx.lineTo(pivotX-160+(i%5?0:8),yy);ctx.stroke();ctx.fillStyle="#ffffff88";ctx.fillText((state.L*i/10).toFixed(2),pivotX-208,yy+4)}}
+ // floor shadow
+ const sh=ctx.createRadialGradient(x,H-54,5,x,H-54,80);sh.addColorStop(0,"#0008");sh.addColorStop(1,"#0000");ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(x,H-54,90,18,0,0,Math.PI*2);ctx.fill();
+}
+function roundRect(c,x,y,w,h,r){
+  r=Math.max(0,Math.min(r,Math.min(w,h)/2));
+  c.beginPath();
+  c.moveTo(x+r,y); c.lineTo(x+w-r,y);
+  c.quadraticCurveTo(x+w,y,x+w,y+r);
+  c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r);
+  c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y);
+  c.closePath(); c.fill();
+}
+function updateMobileSvg(){
+  const svg=document.getElementById("pendulumSvg"); if(!svg) return;
+  const p=state.planet, cx=300, py=66, scale=Math.min(155, 330), len=scale*(state.L/1.5);
+  const x=cx+Math.sin(state.theta)*len, y=py+Math.cos(state.theta)*len;
+  const bg1=document.getElementById("svgBg1"), bg2=document.getElementById("svgBg2");
+  bg1.setAttribute("stop-color",p.bg[0]); bg2.setAttribute("stop-color",p.bg[1]);
+  document.getElementById("bobColor").setAttribute("stop-color",p.c);
+  for(const id of ["svgThread","svgThreadShadow"]){const el=document.getElementById(id);el.setAttribute("x1",cx);el.setAttribute("y1",py);el.setAttribute("x2",x);el.setAttribute("y2",y)}
+  const bob=document.getElementById("svgBob"); bob.setAttribute("cx",x); bob.setAttribute("cy",y); bob.setAttribute("r",15+state.mass*8); bob.setAttribute("fill",p.c);
+  const glow=document.getElementById("svgGlow"); glow.setAttribute("cx",x); glow.setAttribute("cy",y);
+  const hi=document.getElementById("svgHighlight"); hi.setAttribute("cx",x-6); hi.setAttribute("cy",y-6);
+  const arc=document.getElementById("svgArc"); arc.setAttribute("d",`M ${cx} ${py-len} A ${len} ${len} 0 0 1 ${x} ${y}`);
+  const ad=48, ax=cx+Math.sin(state.theta)*ad, ay=py+Math.cos(state.theta)*ad;
+  document.getElementById("svgAngle").setAttribute("d",`M ${cx} ${py+ad} A ${ad} ${ad} 0 0 1 ${ax} ${ay}`);
+}
+function animate(now){if(W<2||H<2){resize();requestAnimationFrame(animate);return}let dt=Math.min(.035,(now-last)/1000);last=now;if(state.running)simulate(dt);draw();updateMobileSvg();requestAnimationFrame(animate)}
+requestAnimationFrame(animate);
+
+const bars=$("bars");for(let i=0;i<22;i++){let d=document.createElement("div");d.className="bar";bars.appendChild(d)}
+function updateBars(){let vals=[...document.querySelectorAll(".bar")];let Ek=.5*state.mass*(state.L*state.omega)**2;let Ep=state.mass*state.planet.g*state.L*(1-Math.cos(state.theta));let sum=Ek+Ep||1;vals.forEach((b,i)=>{let q=(i/21);let v=q<.5?Ep/sum:(Ek/sum);b.style.height=(8+Math.max(0,v)*75*(.35+.65*Math.abs(Math.sin(i*.8))))+"px"});}
+setInterval(updateBars,120);
+
+$("themeBtn").onclick=()=>{state.planet=planets[(planets.indexOf(state.planet)+1)%planets.length];state.running=false;state.t=0;state.theta=state.angle*Math.PI/180;state.omega=0;state.osc=0;state.crossTimes=[];document.querySelectorAll(".planet").forEach(x=>x.classList.toggle("active",+x.dataset.i===planets.indexOf(state.planet)));updateUI();draw();updateMobileSvg()};
+updateUI(); renderTable();
+</script>
+</body>
+</html>
